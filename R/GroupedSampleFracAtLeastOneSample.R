@@ -1,8 +1,8 @@
-#' Sample a random proportion of the data, keeping at least one observation
-#' @title Fraction Sampling without empty output
-#' @param d_subset A dtta.frame from which a small sample is to be returned
+#' Sample a random proportion of the data, keeping at least one observation.
+#' @title Fraction Sampling without empty output.
+#' @param d_subset A data.frame from which a small sample is to be returned.
 #' @param prop A number between 0 and 1, being the desired sampling fraction.
-#' @param is.random a boolean. If TRUE, a random sample is drawn, else it takes the head() of the data
+#' @param is.random a boolean. If TRUE, a random sample is drawn, else it takes the head() of the data.
 #'
 #' @return A random sample from the data, of proportion prop, but always returning at least one observation even if prop is too low.
 #'
@@ -20,5 +20,3 @@ GroupedSampleFracAtLeastOneSample = function(d_subset, prop, is.random=TRUE){
     return(d_subset %>% head(nb.to.sample))
   }
 }
-
-
