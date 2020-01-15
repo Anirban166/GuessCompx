@@ -185,48 +185,57 @@ GroupedSampleFracAtLeastOneSample = function(d_subset, prop, is.random=TRUE) # w
       i                <- i+1 # increment loop variable 
     }
                
-   } #end loop (starts at line 100 here)
+   } # end loop (which starts at line 100)
           
-     recorded.times = tail(recorded.times, -1)
+     recorded.times = tail(recorded.times, -1) 
+     # get all the recorded times (-1 from reverse = all obs. in increasing order) in recorded.times
+     # I tried this > tail(c(1:5),-1)
+     # and got this : [1] 2 3 4 5
+     # hence the same would apply here    
+          
   if (is_myOS_windows) 
-     recorded.mems  = tail(recorded.mems,  -1) 
+     recorded.mems  = tail(recorded.mems,  -1)
+     # Likewise, get all the recorded memory (again, for Windows OS only) in recorded.mems 
 
   if (length(recorded.times) %in% c(1, 2)) 
     stop("The allowed max.time value is too small to run the algorithm on more than 2 sample sizes. 
     Unable to proceed with cross-validation or model fitting. Stopping the process. Please increase max.time or decrease start.size.")
           
   # MEMORY RESULTS
-
+  
+  # ask sir
+          
   if (is_myOS_windows)
   {
     temp        <- CompEstBenchmark(data.frame('size'   = head(sample.sizes, length(recorded.times)),
                                                'time'   = recorded.times,
                                                "memory" = recorded.mems) %>%
                                       mutate(NlogN_X = size*log(size)), use="memory")
+            
     model.list  <- temp[[1]]
+            
     to.model    <- temp[[2]]
+            
     benchmark   <- lapply(model.list, function(x) cv.glm(to.model, x)$delta[2])
+                          
     best.model  <- names(which.min(benchmark))
+                          
     if (best.model=="constant") message("Best model CONSTANT for memory can be caused by not choosing a sufficiently high max.time value")
     full.memory <- CompEstPred(model.list, benchmark, N, use="memory")
+                          
     signif.test <- tail(anova(model.list[[which.min(benchmark)]], test="F")$Pr, 1)
+                          
     uncertain   <- is.na(signif.test) | signif.test > alpha.value
-    if ( uncertain ) message("warning: best MEMORY model not significantly different from a constant relationship. Increase max.time or replicates.")
-    output.memory = list(
-      'best.model' = toupper(best.model),
+                          
+    if (uncertain) 
+       message("warning: best MEMORY model not significantly different from a constant relationship. Increase max.time or replicates.")
+    output.memory = 
+ list('best.model' = toupper(best.model),
       'memory.usage.on.full.dataset' = full.memory,
       'system.memory.limit' = paste0(memory.limit(), " Mb"),
       'p.value.model.significance' = signif.test
-    )
-    if (plot.result==TRUE) {
-      custom_titles = list("Complexity Fit against MEMORY USAGE",   paste0("ALGORITHM: ", algorithm_name, "() // DATASET: ", dataset_name, " // STRATA: ", ifelse(is.null(strata), "None", strata))  )
-      to.plot <- to.model %>% select(-NlogN_X) %>% melt(measure.vars=c(3, 4:10), value.name="memory", variable.name="model") %>% mutate(best.model = model==best.model)
-      print(CompEstPlot(to.plot, element_title = custom_titles, use="memory"))
-    }
-  } else {
-    output.memory = list("Warning" = "Memory analysis is only available for Windows OS")
-  }
-
+     )
+                          
   return(list("sample.sizes" = sample.sizes,
               "TIME COMPLEXITY RESULTS" = output.time,
               "MEMORY COMPLEXITY RESULTS" = output.memory))
