@@ -2,13 +2,13 @@
 # Considering memory complexity testing part only
 # Omitted Plot results functionality
 
-# A few keynotes based on my understanding: 
+# Keynotes: 
 
-# Involves 'Stratified Sampling': 
+# (1) Involves 'Stratified Sampling': 
 # A stratified random sample divides the population into smaller groups, or strata, based on shared characteristics. 
 # strata: Stratified random sampling involves dividing the entire population into homogeneous groups called strata.
 
-# Recorded values of time and memory stored in recorded.times and recorded.mems respectively.
+# (2) Recorded values of time and memory are stored in recorded.times and recorded.mems respectively.
 
 CompEst = function(
 d,                            # data.frame on which the algorithm is to be tested. (can be a vector or a matrix as well)
@@ -72,7 +72,7 @@ algorithm_name <- deparse(substitute(f)) # take the algorithm name into a string
   # power factor (common ratio of the GP our sample sizes follow/vary in) and mark them as default sample sizes.
           
   sample.sizes         <- floor(append(default.sample.sizes[default.sample.sizes >= start.size & default.sample.sizes < N], 
-                          rep(N, each = replicates))) # ask sir to verify understanding (line 85)
+                          rep(N, each = replicates))) # ask sir to verify understanding (line 85 in CompEst)
           
                        # Take the default sample sizes in between start size (inclusive) and number of rows in our data frame 
                        # (of course, start size rows will be less than N) and append them to their replicates. (x2 for default)
@@ -89,7 +89,7 @@ algorithm_name <- deparse(substitute(f)) # take the algorithm name into a string
           
   i                    <- 1 # loop variable, initialize as 1
 
-    if (length(unique(sample.sizes)) < 3) # ask sir, (line 90-92) - should be >2 as per stop message below
+    if (length(unique(sample.sizes)) < 3) # ask sir, (line 90-92 in CompEst) - should be >2 as per stop message below
       stop("Current configuration does not allow to compute more than 2 sample sizes and model fitting will fail.
       Stopping the process. Please increase max.time or decrease start.size.")
 
@@ -120,7 +120,7 @@ algorithm_name <- deparse(substitute(f)) # take the algorithm name into a string
    # vector and the total size of the sample as the rows (default 7) which is a parameter of this function.
    # additional parameter for sample function : 'replace' is FALSE (by default) if not mentioned, hence no dupes will be there.
     else 
-      return(data[1:rows]) # else return data frame composing of 
+      return(data[1:rows]) # else return vector composing of 1 to number of rows passed to function (default 7)
   }
      
   # same part for matrix or data frame I guess                                        
@@ -130,12 +130,13 @@ algorithm_name <- deparse(substitute(f)) # take the algorithm name into a string
    # in our data frame and the total size of the sample as the rows (default 7) which is a parameter of this function.
    # additional parameter for sample function : 'replace' is FALSE (by default) if not mentioned, hence no dupes of rows will occur.
   else 
-    return(data[1:rows, ])
+    return(data[1:rows, ]) # else return data frame composing of 1 to number of rows passed to function (default 7)
                                 } # end rhead 
 #-------------------------------------------------------------------------------------------------------------------------------------------                    
                                   # back to CompEst()
           else 
-            sampled.data     <- do.call("rbind", by(d, d[strata], GroupedSampleFracAtLeastOneSample, prop = sample.sizes[i]/N))
+            sampled.data  <- do.call("rbind", by(d, d[strata], GroupedSampleFracAtLeastOneSample, prop = sample.sizes[i]/N))
+               
           # do.call makes the call to a function which is rbind here which binds our data frame d by the sample data frame returned
           # by GroupedSampleFracAtLeastOneSample function, with parameters d[strata] passed as d_subset, prop (being proportion) 
           # passed as (samples sizes or selective rows from total rows (per iteration) / total number of rows) as far as I understand
@@ -208,9 +209,9 @@ GroupedSampleFracAtLeastOneSample = function(d_subset, prop, is.random=TRUE) # w
   if (is_myOS_windows)
   {
     temp  <- CompEstBenchmark(data.frame('size'   = head(sample.sizes, length(recorded.times)),
-                                               'time'   = recorded.times,
-                                               "memory" = recorded.mems) %>%
-                                      mutate(NlogN_X = size*log(size)), use="memory")
+                                         'time'   = recorded.times,
+                                         "memory" = recorded.mems) %>%
+                                          mutate(NlogN_X = size*log(size)), use="memory")
           
     # CompEstBenchmark implementation:  
 #----------------------------------------------------------------------------------------------------------------------------------------            
