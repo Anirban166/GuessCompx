@@ -200,17 +200,43 @@ GroupedSampleFracAtLeastOneSample = function(d_subset, prop, is.random=TRUE) # w
   if (length(recorded.times) %in% c(1, 2)) 
     stop("The allowed max.time value is too small to run the algorithm on more than 2 sample sizes. 
     Unable to proceed with cross-validation or model fitting. Stopping the process. Please increase max.time or decrease start.size.")
-          
+           
   # MEMORY RESULTS
   
   # ask sir
           
   if (is_myOS_windows)
   {
-    temp        <- CompEstBenchmark(data.frame('size'   = head(sample.sizes, length(recorded.times)),
+    temp  <- CompEstBenchmark(data.frame('size'   = head(sample.sizes, length(recorded.times)),
                                                'time'   = recorded.times,
                                                "memory" = recorded.mems) %>%
                                       mutate(NlogN_X = size*log(size)), use="memory")
+          
+    # CompEstBenchmark implementation:  
+#----------------------------------------------------------------------------------------------------------------------------------------            
+   CompEstBenchmark = function(to.model, use="memory")
+  {
+    # if(use=="memory") -> considering only the memory part below:
+    constant    <- glm(memory~1,          data=to.model); to.model['constant'] = fitted(constant)
+    linear      <- glm(memory~size,       data=to.model); to.model['linear'] = fitted(linear)
+    quadratic   <- glm(memory~I(size^2),  data=to.model); to.model['quadratic'] = fitted(quadratic)
+    cubic       <- glm(memory~I(size^3),  data=to.model); to.model['cubic'] = fitted(cubic)
+    squareroot  <- glm(memory~sqrt(size), data=to.model); to.model['squareroot'] = fitted(squareroot)
+    log         <- glm(memory~log(size),  data=to.model); to.model['log'] = fitted(log)
+    NlogN       <- glm(memory~NlogN_X,    data=to.model); to.model['NlogN'] = fitted(NlogN)
+
+    model.list <- list('constant'   = constant,
+                       'linear'     = linear,
+                       'quadratic'  = quadratic,
+                       'cubic'      = cubic,
+                       'squareroot' = squareroot,
+                       'log'        = log,
+                       'NlogN'      = NlogN)
+    return(list(model.list, to.model))
+  }    
+#----------------------------------------------------------------------------------------------------------------------------------------            
+    
+    # back to CompEst()  
             
     model.list  <- temp[[1]]
             
@@ -221,7 +247,27 @@ GroupedSampleFracAtLeastOneSample = function(d_subset, prop, is.random=TRUE) # w
     best.model  <- names(which.min(benchmark))
                           
     if (best.model=="constant") message("Best model CONSTANT for memory can be caused by not choosing a sufficiently high max.time value")
+                          
     full.memory <- CompEstPred(model.list, benchmark, N, use="memory")
+    
+    # CompEstPred implementation:
+#----------------------------------------------------------------------------------------------------------------------------------------                          
+
+  CompEstPred = function(model.list, benchmark, N, use="time")
+  {
+            
+  if (names(which.min(benchmark))=="NlogN") 
+    estimation <- predict(model.list[[which.min(benchmark)]], newdata = data.frame('NlogN_X' = N*log(N)))
+            
+   else 
+    estimation <- predict(model.list[[which.min(benchmark)]], newdata = data.frame('size' = N))
+            
+  return(ifelse(use=="time", as.character(seconds_to_period(round(estimation, 2))), paste0(round(estimation), " Mb")))
+}
+                          
+#----------------------------------------------------------------------------------------------------------------------------------------    
+    
+    # back to CompEst()                      
                           
     signif.test <- tail(anova(model.list[[which.min(benchmark)]], test="F")$Pr, 1)
                           
@@ -229,12 +275,11 @@ GroupedSampleFracAtLeastOneSample = function(d_subset, prop, is.random=TRUE) # w
                           
     if (uncertain) 
        message("warning: best MEMORY model not significantly different from a constant relationship. Increase max.time or replicates.")
-    output.memory = 
- list('best.model' = toupper(best.model),
-      'memory.usage.on.full.dataset' = full.memory,
-      'system.memory.limit' = paste0(memory.limit(), " Mb"),
-      'p.value.model.significance' = signif.test
-     )
+    
+    output.memory = list('best.model' = toupper(best.model),
+                         'memory.usage.on.full.dataset' = full.memory,
+                         'system.memory.limit' = paste0(memory.limit(), " Mb"),
+                         'p.value.model.significance' = signif.test)
                           
   return(list("sample.sizes" = sample.sizes,
               "TIME COMPLEXITY RESULTS" = output.time,
