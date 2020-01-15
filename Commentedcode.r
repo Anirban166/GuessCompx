@@ -162,20 +162,29 @@ GroupedSampleFracAtLeastOneSample = function(d_subset, prop, is.random=TRUE) # w
     {
       gc(); gc();      # garbage collection - ask sir why twice
       memory.before    <- memory.size() # take current memory usage using memory.size (function only available for Windows) 
+              
       recorded.times   <- append(recorded.times, system.time(f(sampled.data))[3])
+              
       memory.after     <- memory.size() # take memory usage after our algorithm based function executes (then take difference)
       gc(); gc();
       recorded.mems    <- append(recorded.mems, memory.after - memory.before) # append difference to memory record
-      i                <- i+1
-    } else {
+      i                <- i+1 # increment loop variable 
+    } 
+    else 
+    {
       gc(); gc();
-      # memory.before    <- memory.size()
+      # memory.before    <- memory.size() 
+      # Above line commented because memory.size() function doesn't apply to operating systems other than windows.
+              
       recorded.times   <- append(recorded.times, system.time(f(sampled.data))[3])
+              
       # memory.after     <- memory.size()
       gc(); gc();
       # recorded.mems    <- append(recorded.mems, memory.after - memory.before)
-      i                <- i+1
+      # Above line commented because memory.size() function doesn't apply to operating systems other than windows.
+      i                <- i+1 # increment loop variable 
     }
+               
    } #end loop (starts at line 100 here)
           
      recorded.times = tail(recorded.times, -1)
