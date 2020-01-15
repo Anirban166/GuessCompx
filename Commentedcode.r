@@ -83,9 +83,9 @@ algorithm_name <- deparse(substitute(f)) # take the algorithm name into a string
                        # Append functionality : Following syntax 'append(x, values)' 
                        # -> Append x (vector containing values to be appended) to values (vector to be appended to/against)                
           
-  recorded.times       <- 0 # initialize recorded times as 0
+   recorded.times       <- 0 # initialize recorded times as 0
           
-  recorded.mems        <- 0 # initialize recorded memory as 0
+   recorded.mems        <- 0 # initialize recorded memory as 0
           
   i                    <- 1 # loop variable, initialize as 1
 
@@ -159,19 +159,21 @@ GroupedSampleFracAtLeastOneSample = function(d_subset, prop, is.random=TRUE) # w
 #-------------------------------------------------------------------------------------------------------------------------------------------     if (is_myOS_windows)
          # back to CompEst()
                
-    if (is_myOS_windows)           
+    if (is_myOS_windows) # time + memory           
     {
       gc(); gc();      # garbage collection - ask sir why twice
       memory.before    <- memory.size() # take current memory usage using memory.size (function only available for Windows) 
               
       recorded.times   <- append(recorded.times, system.time(f(sampled.data))[3])
+                       # add the recorded times from the timings returned by system.time function for our sampled data (say x) 
+                       # which uses our function/algorithm (say f) -> f(x) into [3] of recorded.times variable 
               
       memory.after     <- memory.size() # take memory usage after our algorithm based function executes (then take difference)
       gc(); gc();
       recorded.mems    <- append(recorded.mems, memory.after - memory.before) # append difference to memory record
       i                <- i+1 # increment loop variable 
     } 
-    else 
+    else # only time
     {
       gc(); gc();
       # memory.before    <- memory.size() 
