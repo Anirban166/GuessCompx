@@ -8,7 +8,11 @@
 # A stratified random sample divides the population into smaller groups, or strata, based on shared characteristics. 
 # strata: Stratified random sampling involves dividing the entire population into homogeneous groups called strata.
 
-# (2) Recorded values of time and memory are stored in recorded.times and recorded.mems respectively.
+# (2) Involves 'cv.glm()' or 
+
+# (3) Recorded values of time and memory are stored in recorded.times and recorded.mems respectively.
+
+# (4) Outputs a list containing 
 
 CompEst = function(
 d,                            # data.frame on which the algorithm is to be tested. (can be a vector or a matrix as well)
@@ -40,9 +44,9 @@ is_myOS_windows <- Sys.info()["sysname"] %in% c("windows", "Windows", "WINDOWS")
           
       # memory.size() function only works in systems having Windows OS, hence the restriction.             
 
-size <- NULL    #
-NlogN_X <- NULL # ask sir
-model <- NULL   # 
+size <- NULL    # variable to store size
+NlogN_X <- NULL # seperate variable to denote NlogN complexity (works a bit differently)
+model <- NULL   # variable to store model
 dataset_name   <- deparse(substitute(d)) # take the dataset name into a string and keep it for reference inside the function.
 algorithm_name <- deparse(substitute(f)) # take the algorithm name into a string and keep it for reference inside the function.
                                          # can use 'as.character(substitute(d))' and 'as.character(substitute(f))' as well.
@@ -57,19 +61,26 @@ algorithm_name <- deparse(substitute(f)) # take the algorithm name into a string
     start.size <- floor(log2(NROW(d)))
   # change value of first sample size (in rows) to log(N) if null (default is null)   
           
-  if (!is.null(strata)) 
+  if (!is.null(strata)) # if strata exists (not null)
   {
     if (!(strata %in% names(d)))  # here %in% searches for strata (the string of our required attribute/column to sample) 
-                                  # inside our data frame (d) column names
+                                  # inside our data frame's (d) column names
       stop(paste0("No column named *", strata, "* found in the data. Stopping the process.")) # if not found, stop process
     else 
       start.size = max(start.size, NROW(unique(d[strata]))) # else take the maximum number of unique rows from our strata column
                                                             # as the initial size (in no. of rows) to run the sampling
   }        
-          
-  default.sample.sizes <- start.size * rep(power.factor^(0:25), each = replicates)
-  # with start size fixed above, we multiply it with replicates of our  
-  # power factor (common ratio of the GP our sample sizes follow/vary in) and mark them as default sample sizes.
+        
+  # with start size fixed above, we multiply it with 25 power-factor based increasing sizes
+  # which are replicated (numbers would be large for a large power factor)        
+  default.sample.sizes <- start.size * rep(power.factor^(0:25), each = replicates) # (replicated x2 for default value of replicates = 2)
+  # to obtain our default vector (for sample sizes)
+ 
+          ranging from the smallest 
+          to a very big number (probably bigger than  the data itself !). So we need at following line to restrict this vector
+          with 2 limitations : minimum value be set at start.size, and maximum inferior to the size of data. The ‘append’ 
+          function ensures that we add to the vector a final size that would be exactly the size of the original data 
+          (with possible replicates), because the n-1 size would be inferior to that.           
           
   sample.sizes         <- floor(append(default.sample.sizes[default.sample.sizes >= start.size & default.sample.sizes < N], 
                           rep(N, each = replicates))) # ask sir to verify understanding (line 85 in CompEst)
@@ -217,17 +228,28 @@ GroupedSampleFracAtLeastOneSample = function(d_subset, prop, is.random=TRUE) # w
           
     # CompEstBenchmark implementation:  
 #----------------------------------------------------------------------------------------------------------------------------------------            
-   CompEstBenchmark = function(to.model, use="memory")
+   CompEstBenchmark = function(to.model, use="memory") # benchmark based on parameters passed model and recorded.mems 
   {
     # if(use=="memory") -> considering only the memory part below:
+             
     constant    <- glm(memory~1,          data=to.model); to.model['constant'] = fitted(constant)
+    #           
+    # The '~' should be thought of as saying "is distributed as" or "is dependent on" to the RHS (seen in regression functions)
+             
     linear      <- glm(memory~size,       data=to.model); to.model['linear'] = fitted(linear)
     quadratic   <- glm(memory~I(size^2),  data=to.model); to.model['quadratic'] = fitted(quadratic)
+    # Note: The I() function acts to convert the argument inside I(...) to as we expect it to be or work like.
+    # Here if we just use (size^2) like I tried, it doesn't evaluate to the square of our size as we expect.
+    # which is primarily because in function formula we need to explicitly inhibit the interpretation of operators 
+    # such as "+", "-", "*" and "^" as formula operators, so they are used as arithmetical operators. ("^" is used here inside)
+    
+    # Likewise, for the rest: 
     cubic       <- glm(memory~I(size^3),  data=to.model); to.model['cubic'] = fitted(cubic)
     squareroot  <- glm(memory~sqrt(size), data=to.model); to.model['squareroot'] = fitted(squareroot)
     log         <- glm(memory~log(size),  data=to.model); to.model['log'] = fitted(log)
     NlogN       <- glm(memory~NlogN_X,    data=to.model); to.model['NlogN'] = fitted(NlogN)
-
+    
+    # create a list with strings for complexity classes assigned their fitted values
     model.list <- list('constant'   = constant,
                        'linear'     = linear,
                        'quadratic'  = quadratic,
@@ -235,15 +257,15 @@ GroupedSampleFracAtLeastOneSample = function(d_subset, prop, is.random=TRUE) # w
                        'squareroot' = squareroot,
                        'log'        = log,
                        'NlogN'      = NlogN)
-    return(list(model.list, to.model))
+    return(list(model.list, to.model)) # return list (goes to temp variable)
   }    
 #----------------------------------------------------------------------------------------------------------------------------------------            
     
     # back to CompEst()  
             
-    model.list  <- temp[[1]]
+    model.list  <- temp[[1]] # list of those 7 models (extracting 1st parameter of temp)
             
-    to.model    <- temp[[2]]
+    to.model    <- temp[[2]] # The data that was sent to temp (extracting 2nd parameter of temp)
             
     benchmark   <- lapply(model.list, function(x) cv.glm(to.model, x)$delta[2])
                           
