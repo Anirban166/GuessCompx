@@ -62,16 +62,14 @@ algorithm_name <- deparse(substitute(f)) # take the algorithm name into a string
   # with start size fixed above, we multiply it with 25 power-factor based increasing sizes
   # which are replicated (numbers would be large for a large power factor)        
   default.sample.sizes <- start.size * rep(power.factor^(0:25), each = replicates) # (replicated x2 for default value of replicates = 2)
-  # to obtain our default vector (for sample sizes)
- 
-          ranging from the smallest 
-          to a very big number (probably bigger than  the data itself !). So we need at following line to restrict this vector
-          with 2 limitations : minimum value be set at start.size, and maximum inferior to the size of data. The ‘append’ 
-          function ensures that we add to the vector a final size that would be exactly the size of the original data 
-          (with possible replicates), because the n-1 size would be inferior to that.           
+  # to obtain our default vector (for sample sizes)  
+  # Note the values range from a small number to a very big number hence we need to restrict it, like as done below with 2 limitations:        
           
   sample.sizes         <- floor(append(default.sample.sizes[default.sample.sizes >= start.size & default.sample.sizes < N], 
-                          rep(N, each = replicates))) # ask sir to verify understanding (line 85 in CompEst)
+                          rep(N, each = replicates))) 
+                       # restrictions: minimum value be set at start.size, and maximum inferior to the size of data. The ‘append’ 
+                       # function ensures that we add to the vector a final size that would be exactly the size of the original data 
+                       # (with possible replicates), because the (n-1) size would be inferior to that. 
           
                        # Take the default sample sizes in between start size (inclusive) and number of rows in our data frame 
                        # (of course, start size rows will be less than N) and append them to their replicates. (x2 for default)
@@ -207,10 +205,10 @@ GroupedSampleFracAtLeastOneSample = function(d_subset, prop, is.random=TRUE) # w
           
   if (is_myOS_windows)
   {
-    temp  <- CompEstBenchmark(data.frame('size'   = head(sample.sizes, length(recorded.times)), 
-                                         'time'   = recorded.times,
-                                         "memory" = recorded.mems) 
-                                          %>%
+    temp  <- CompEstBenchmark(data.frame('size'   = head(sample.sizes, length(recorded.times)), # assign size as the sample sizes uptil the no. of recorded times
+                                         'time'   = recorded.times, # assign recorded time observations as time 
+                                         "memory" = recorded.mems) # likewise for memory
+                                          %>%                      # ask sir
                                           mutate(NlogN_X = size*log(size)), use="memory")
           
     # CompEstBenchmark implementation:  
