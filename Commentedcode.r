@@ -1,18 +1,6 @@
 # Commented code for me to understand! (part by part)
-# Considering memory complexity testing part only
+# Considering memory complexity testing part only (included recorded.times and related code since main loop runs through it)
 # Omitted Plot results functionality
-
-# Keynotes: 
-
-# (1) Involves 'Stratified Sampling': 
-# A stratified random sample divides the population into smaller groups, or strata, based on shared characteristics. 
-# strata: Stratified random sampling involves dividing the entire population into homogeneous groups called strata.
-
-# (2) Involves 'cv.glm()' or 
-
-# (3) Recorded values of time and memory are stored in recorded.times and recorded.mems respectively.
-
-# (4) Outputs a list containing 
 
 CompEst = function(
 d,                            # data.frame on which the algorithm is to be tested. (can be a vector or a matrix as well)
@@ -219,7 +207,7 @@ GroupedSampleFracAtLeastOneSample = function(d_subset, prop, is.random=TRUE) # w
           
   if (is_myOS_windows)
   {
-    temp  <- CompEstBenchmark(data.frame('size'   = head(sample.sizes, length(recorded.times)),
+    temp  <- CompEstBenchmark(data.frame('size'   = head(sample.sizes, length(recorded.times)), 
                                          'time'   = recorded.times,
                                          "memory" = recorded.mems) 
                                           %>%
