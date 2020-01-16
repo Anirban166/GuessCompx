@@ -134,7 +134,7 @@ algorithm_name <- deparse(substitute(f)) # take the algorithm name into a string
       return(data[1:rows]) # else return vector composing of 1 to number of rows passed to function (default 7)
   }
      
-  # same part for matrix or data frame I guess                                        
+  # same part for matrix or data frame                                        
   if (is.random==TRUE)
     return(data[base::sample(NROW(data), rows), ])
    # return sampled data frame via sample (from base R) function where we take elements eligible for sampling as the number of rows 
@@ -172,7 +172,7 @@ GroupedSampleFracAtLeastOneSample = function(d_subset, prop, is.random=TRUE) # w
                
     if (is_myOS_windows) # time + memory           
     {
-      gc(); gc();      # garbage collection - ask sir why twice
+      gc(); gc();      
       memory.before    <- memory.size() # take current memory usage using memory.size (function only available for Windows) 
               
       recorded.times   <- append(recorded.times, system.time(f(sampled.data))[3])
@@ -186,7 +186,7 @@ GroupedSampleFracAtLeastOneSample = function(d_subset, prop, is.random=TRUE) # w
     } 
     else # only time
     {
-      gc(); gc();
+      gc(); gc(); # call twice to garbage collection assure memory is released (or to avoid memory leaks) 
       # memory.before    <- memory.size() 
       # Above line commented because memory.size() function doesn't apply to operating systems other than windows.
               
@@ -216,14 +216,13 @@ GroupedSampleFracAtLeastOneSample = function(d_subset, prop, is.random=TRUE) # w
     Unable to proceed with cross-validation or model fitting. Stopping the process. Please increase max.time or decrease start.size.")
            
   # MEMORY RESULTS
-  
-  # ask sir
           
   if (is_myOS_windows)
   {
     temp  <- CompEstBenchmark(data.frame('size'   = head(sample.sizes, length(recorded.times)),
                                          'time'   = recorded.times,
-                                         "memory" = recorded.mems) %>%
+                                         "memory" = recorded.mems) 
+                                          %>%
                                           mutate(NlogN_X = size*log(size)), use="memory")
           
     # CompEstBenchmark implementation:  
@@ -233,8 +232,11 @@ GroupedSampleFracAtLeastOneSample = function(d_subset, prop, is.random=TRUE) # w
     # if(use=="memory") -> considering only the memory part below:
              
     constant    <- glm(memory~1,          data=to.model); to.model['constant'] = fitted(constant)
-    #           
-    # The '~' should be thought of as saying "is distributed as" or "is dependent on" to the RHS (seen in regression functions)
+    # define variables representing complexity classes with a formula based on a generalized linear model/glm (extension of linear regression models)
+    # with formula of type (time/memory ~ size), where size can be constant (1), quadratic (squared or ^2) and so on.
+    # The '~' should be thought of as saying "is distributed as" or "is dependent on" the RHS (seen in regression functions)
+    # Or when specifying a model, '~' means (LHS) 'as a function of' (RHS).
+    # extract fitted values from objects (returned by modeling functions) by using 'fitted' function
              
     linear      <- glm(memory~size,       data=to.model); to.model['linear'] = fitted(linear)
     quadratic   <- glm(memory~I(size^2),  data=to.model); to.model['quadratic'] = fitted(quadratic)
@@ -248,8 +250,9 @@ GroupedSampleFracAtLeastOneSample = function(d_subset, prop, is.random=TRUE) # w
     squareroot  <- glm(memory~sqrt(size), data=to.model); to.model['squareroot'] = fitted(squareroot)
     log         <- glm(memory~log(size),  data=to.model); to.model['log'] = fitted(log)
     NlogN       <- glm(memory~NlogN_X,    data=to.model); to.model['NlogN'] = fitted(NlogN)
+    # Note: NlogN is seperately considered from 'NlogN_x' variable
     
-    # create a list with strings for complexity classes assigned their fitted values
+    # create a list with strings (denoting respective complexity classes) assigned their fitted values:
     model.list <- list('constant'   = constant,
                        'linear'     = linear,
                        'quadratic'  = quadratic,
@@ -265,29 +268,36 @@ GroupedSampleFracAtLeastOneSample = function(d_subset, prop, is.random=TRUE) # w
             
     model.list  <- temp[[1]] # list of those 7 models (extracting 1st parameter of temp)
             
-    to.model    <- temp[[2]] # The data that was sent to temp (extracting 2nd parameter of temp)
+    to.model    <- temp[[2]] # The same data that was sent to temp as to.model itself (extracting 2nd parameter of temp)
             
-    benchmark   <- lapply(model.list, function(x) cv.glm(to.model, x)$delta[2])
+    benchmark   <- lapply(model.list, function(x) cv.glm(to.model, x)$delta[2]) #ask sir
+    # calculates cross validation error of prediction for each of the models in model.list (7 complexity classes) and store in 'benchmark' variable
                           
     best.model  <- names(which.min(benchmark))
+    # find the 'best' fitted model in terms of having the lowest/minimal error, i.e. minimum(benchmark)
                           
     if (best.model=="constant") message("Best model CONSTANT for memory can be caused by not choosing a sufficiently high max.time value")
+    # Kind of an exception as constant complexity prediction can be caused by other factors as mentioned above. (even when trend is actually not constant)
                           
     full.memory <- CompEstPred(model.list, benchmark, N, use="memory")
+    # Pass the full list of models (7), the vector of (LOO) errors (benchmark) and no. of rows to CompEstPred function 
+    # and store result in 'full.memory' variable.                     
     
     # CompEstPred implementation:
 #----------------------------------------------------------------------------------------------------------------------------------------                          
 
   CompEstPred = function(model.list, benchmark, N, use="time")
   {
-            
+            # seperate case for NlogN:
   if (names(which.min(benchmark))=="NlogN") 
     estimation <- predict(model.list[[which.min(benchmark)]], newdata = data.frame('NlogN_X' = N*log(N)))
             
-   else 
+   else     # 
     estimation <- predict(model.list[[which.min(benchmark)]], newdata = data.frame('size' = N))
             
   return(ifelse(use=="time", as.character(seconds_to_period(round(estimation, 2))), paste0(round(estimation), " Mb")))
+  # if use=="time" then return time (estimation), rounded upto 2 decimal places,
+  # else (for memory), return memory used (estimation) followed by Mb (memory usage is calculated in megabytes)
 }
                           
 #----------------------------------------------------------------------------------------------------------------------------------------    
@@ -295,17 +305,22 @@ GroupedSampleFracAtLeastOneSample = function(d_subset, prop, is.random=TRUE) # w
     # back to CompEst()                      
                           
     signif.test <- tail(anova(model.list[[which.min(benchmark)]], test="F")$Pr, 1)
+    # apply significance test via analysis of variance..ask sir
                           
     uncertain   <- is.na(signif.test) | signif.test > alpha.value
+    # if na values occur or test is insignifant / fails significance test, then mark as uncertain)
                           
     if (uncertain) 
        message("warning: best MEMORY model not significantly different from a constant relationship. Increase max.time or replicates.")
-    
-    output.memory = list('best.model' = toupper(best.model),
-                         'memory.usage.on.full.dataset' = full.memory,
+    # Display message notifying user regarding the above aspect if test fails (or uncertain=TRUE)
+     
+    # create the output list for memory:                      
+    output.memory = list('best.model' = toupper(best.model), # best model in caps
+                         'memory.usage.on.full.dataset' = full.memory, 
                          'system.memory.limit' = paste0(memory.limit(), " Mb"),
                          'p.value.model.significance' = signif.test)
-                          
+  
+  # return list of sample sizes and time + memory complexity results                        
   return(list("sample.sizes" = sample.sizes,
               "TIME COMPLEXITY RESULTS" = output.time,
               "MEMORY COMPLEXITY RESULTS" = output.memory))
