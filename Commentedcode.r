@@ -256,7 +256,7 @@ GroupedSampleFracAtLeastOneSample = function(d_subset, prop, is.random=TRUE) # w
             
     to.model    <- temp[[2]] # The same data that was sent to temp as to.model itself (extracting 2nd parameter of temp)
             
-    benchmark   <- lapply(model.list, function(x) cv.glm(to.model, x)$delta[2]) #ask sir
+    benchmark   <- lapply(model.list, function(x) cv.glm(to.model, x)$delta[2]) # apply cross validation on the list of glms, extracting the second delta attribute (adjusted delta error)
     # calculates cross validation error of prediction for each of the models in model.list (7 complexity classes) and store in 'benchmark' variable
                           
     best.model  <- names(which.min(benchmark))
